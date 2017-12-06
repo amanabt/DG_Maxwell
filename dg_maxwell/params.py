@@ -31,13 +31,13 @@ volume_integral_scheme = 'lobatto_quadrature'
 N_quad     = 8
 
 # Wave speed.
-c          = 1
+c          = 1.
 
 # The total time for which the wave is to be evolved by the simulation. 
 total_time = 2.01
 
 # The c_lax to be used in the Lax-Friedrichs flux.
-c_lax      = c
+c_lax      = np.abs(c)
 
 # Array containing the LGL points in xi space.
 xi_LGL     = lagrange.LGL_points(N_LGL)
@@ -100,7 +100,7 @@ dx_dxi  = af.mean(wave_equation.dx_dxi_numerical((element_mesh_nodes[0 : 2]),\
 
 
 # The value of time-step.
-delta_t = delta_x / (4 * c)
+delta_t = delta_x / (4 * np.abs(c))
 
 # Array of timesteps seperated by delta_t.
 time    = utils.linspace(0, int(total_time / delta_t) * delta_t,
@@ -109,16 +109,18 @@ time    = utils.linspace(0, int(total_time / delta_t) * delta_t,
 
 # The wave to be advected is either a sin or a Gaussian wave.
 # This parameter can take values 'sin' or 'gaussian'.
-wave = 'sin'
+wave = 'gaussian'
 
 # Initializing the amplitudes. Change u_init to required initial conditions.
 if (wave=='sin'):
     u_init = af.sin(2 * np.pi * element_LGL)
 
 if (wave=='gaussian'):
-    u_init = np.e ** (-(element_LGL) ** 2 / 0.4 ** 2)
+    u_init = np.e ** (-(element_LGL) ** 2 / 0.2 ** 2)
 
 
+u_init[0, 0] = 0.
+u_init[-1, -1] = 0.
 
 # Initializing the amplitudes. Change u_init to required initial conditions.
 u          = af.constant(0, N_LGL, N_Elements, time.shape[0],\

@@ -328,7 +328,11 @@ def lax_friedrichs_flux(u_n):
                         - params.c_lax * (u_iplus1_0 - u_i_N_LGL) / 2
     
     
-    return boundary_flux 
+    # Dirichlet boundary conditions at the boundary
+    #boundary_flux[0, 0] = 0.
+    #boundary_flux[0, -1] = 0.
+    
+    return boundary_flux
 
 def analytical_u_LGL(t_n):
     '''
@@ -386,8 +390,11 @@ def surface_term(u_n):
     L_p_1        = params.lagrange_basis_value[:, -1]
     f_i          = lax_friedrichs_flux(u_n)
     f_iminus1    = af.shift(f_i, 0, 1)
-    surface_term = af.blas.matmul(L_p_1, f_i) - af.blas.matmul(L_p_minus1,\
-                                                                    f_iminus1)
+    surface_term = af.blas.matmul(L_p_1, f_i) - af.blas.matmul(L_p_minus1,
+                                                               f_iminus1)
+    
+    #surface_term[-1, 0]   = 0.
+    #surface_term[0, -1] = 0.
     
     return surface_term
 
@@ -421,6 +428,69 @@ def b_vector(u_n):
     
     return b_vector_array
 
+# RK4 time stepping by changing A matrix and b vector
+#def RK4_timestepping(A_inverse, u, delta_t):
+    #'''
+
+    #Implementing the Runge-Kutta (RK4) method to evolve the wave.
+
+    #Parameters
+    #----------
+    #A_inverse : arrayfire.Array[N_LGL N_LGL 1 1]
+                #The inverse of the A matrix which was calculated
+                #using A_matrix() function.
+
+    #u         : arrayfire.Array[N_LGL N_Elements 1 1]
+                #u at the mapped LGL points
+
+    #delta_t   : float64
+                #The time-step by which u is to be evolved.
+
+    #Returns
+    #-------
+    #delta_u : arrayfire.Array [N_LGL N_Elements 1 1]
+              #The change in u at the mapped LGL points.
+
+    #'''
+    #b = b_vector(u)
+    #b[0, 0] = 0.
+    #b[-1, -1] = 0.
+
+    #k1 = af.reorder(utils.matmul_3D(A_inverse, af.reorder(b,
+                                                          #d0 = 0,
+                                                          #d1 = 2, d2 = 1)),
+                    #d0 = 0, d1 = 2, d2 = 1)
+    
+    #b = b_vector(u + k1 * delta_t / 2)
+    #b[0, 0] = 0.
+    #b[-1, -1] = 0.
+    
+    #k2 = af.reorder(utils.matmul_3D(A_inverse, af.reorder(b,
+                                                          #d0 = 0, d1 = 2, d2 = 1)),
+                    #d0 = 0, d1 = 2, d2 = 1)
+    
+    #b = b_vector(u + k2 * delta_t / 2)
+    #b[0, 0] = 0.
+    #b[-1, -1] = 0.
+    
+    #k3 = af.reorder(utils.matmul_3D(A_inverse, af.reorder(b,
+                                                          #d0 = 0, d1 = 2, d2 = 1)),
+                    #d0 = 0, d1 = 2, d2 = 1)
+    
+    #b = b_vector(u + k3 * delta_t)
+    #b[0, 0] = 0.
+    #b[-1, -1] = 0.
+
+    #k4 = af.reorder(utils.matmul_3D(A_inverse, af.reorder(b_vector(u + k3 * delta_t),
+                                                          #d0 = 0, d1 = 2, d2 = 1)),
+                    #d0 = 0, d1 = 2, d2 = 1)
+
+    #delta_u = delta_t * (k1 + 2 * k2 + 2 * k3 + k4) / 6
+    
+    #return delta_u
+
+
+# RK4 timestepping, DBC by changing ki to set u_bc = 0
 def RK4_timestepping(A_inverse, u, delta_t):
     '''
 
@@ -444,15 +514,43 @@ def RK4_timestepping(A_inverse, u, delta_t):
               The change in u at the mapped LGL points.
 
     '''
+    b = b_vector(u)
 
-    k1 = af.matmul(A_inverse, b_vector(u                   ))
-    k2 = af.matmul(A_inverse, b_vector(u + k1 * delta_t / 2))
-    k3 = af.matmul(A_inverse, b_vector(u + k2 * delta_t / 2))
-    k4 = af.matmul(A_inverse, b_vector(u + k3 * delta_t    ))
+    k1 = af.reorder(utils.matmul_3D(A_inverse, af.reorder(b,
+                                                          d0 = 0,
+                                                          d1 = 2, d2 = 1)),
+                    d0 = 0, d1 = 2, d2 = 1)
+    k1[0, 0] = 0.
+    k1[-1, -1] = 0.
+    
+    b = b_vector(u + k1 * delta_t / 2)
+    k2 = af.reorder(utils.matmul_3D(A_inverse, af.reorder(b,
+                                                          d0 = 0, d1 = 2, d2 = 1)),
+                    d0 = 0, d1 = 2, d2 = 1)
+    
+    k2[0, 0] = 0.
+    k2[-1, -1] = 0.
+
+    b = b_vector(u + k2 * delta_t / 2)
+    k3 = af.reorder(utils.matmul_3D(A_inverse, af.reorder(b,
+                                                          d0 = 0, d1 = 2, d2 = 1)),
+                    d0 = 0, d1 = 2, d2 = 1)
+
+    k3[0, 0] = 0.
+    k3[-1, -1] = 0.
+
+    b = b_vector(u + k3 * delta_t)
+    k4 = af.reorder(utils.matmul_3D(A_inverse, af.reorder(b_vector(u + k3 * delta_t),
+                                                          d0 = 0, d1 = 2, d2 = 1)),
+                    d0 = 0, d1 = 2, d2 = 1)
+
+    k4[0, 0] = 0.
+    k4[-1, -1] = 0.
 
     delta_u = delta_t * (k1 + 2 * k2 + 2 * k3 + k4) / 6
-
+    
     return delta_u
+
 
 def RK6_timestepping(A_inverse, u, delta_t):
     '''
@@ -542,7 +640,21 @@ def time_evolution():
         os.makedirs(results_directory)
 
 
-    A_inverse   = af.inverse(A_matrix())
+    #A_inverse   = af.inverse(A_matrix())
+    A_inverse = af.tile(af.inverse(A_matrix()), d0 = 1, d1 = 1,
+                        d2 = params.N_Elements)
+
+    ## Setting DBC for the first element
+    #I = af.constant(0., d0 = 1, d1 = params.N_LGL, dtype = af.Dtype.f64)
+    #I[0, 0] = 1
+    #A_inverse[0, :, 0] = I
+
+    ## Setting DBC for the last element
+    #I = af.constant(0., d0 = 1, d1 = params.N_LGL, dtype = af.Dtype.f64)
+    #I[0, -1] = 1
+
+    #A_inverse[-1, :, -1] = I
+
     element_LGL = params.element_LGL
     delta_t     = params.delta_t
     u           = params.u_init
@@ -553,7 +665,7 @@ def time_evolution():
     for t_n in trange(0, time.shape[0]):
 
         # Storing u at timesteps which are multiples of 100.
-        if (t_n % 20) == 0:
+        if (t_n % 10) == 0:
             h5file = h5py.File('results/hdf5_%02d/dump_timestep_%06d' %(int(params.N_LGL), int(t_n)) + '.hdf5', 'w')
             dset   = h5file.create_dataset('u_i', data = u, dtype = 'd')
 
@@ -568,6 +680,8 @@ def time_evolution():
 
         # Implementing RK 4 scheme
         u += RK4_timestepping(A_inverse, u, delta_t)
+        #u[0, 0] = 0.
+        #u[-1, -1] = 0.
 
         # Implementing RK 6 scheme
         #u += RK6_timestepping(A_inverse, u, delta_t)

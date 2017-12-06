@@ -7,6 +7,7 @@ from matplotlib import pyplot as pl
 import arrayfire as af
 import numpy as np
 import h5py
+from tqdm import trange
 
 from dg_maxwell import params
 
@@ -54,22 +55,19 @@ file_count = len(files)
 print(file_count)
 
 
-for i in range(0, file_count):
+for i in trange(0, file_count):
     fig = pl.figure()
-    h5py_data = h5py.File('results/hdf5_%02d/dump_timestep_%06d' %(int(params.N_LGL), int(20 * i)) + '.hdf5', 'r')
+    h5py_data = h5py.File('results/hdf5_%02d/dump_timestep_%06d' %(int(params.N_LGL), int(10 * i)) + '.hdf5', 'r')
     u_LGL     = (h5py_data['u_i'][:])
     pl.plot(params.element_LGL, u_LGL)
     pl.xlabel('x')
     pl.ylabel('u')
-    pl.xlim(-1, 1)
-    pl.ylim(-2, 2)
+    pl.xlim(-1.1, 1.1)
+    pl.ylim(0, 1)
     pl.title('Time = %f' % (i * 20 * params.delta_t))
     fig.savefig('results/1D_Wave_images/%04d' %(i) + '.png')
     pl.close('all')
 
 # Creating a movie with the images created.
 os.system("cd results/1D_Wave_images && ffmpeg -f image2 -i %04d.png -vcodec mpeg4\
-	  -mbd rd -trellis 2 -cmp 2 -g 300 -pass 1 -r 25 -b 18000000 movie.mp4\
-	  && rm -f ffmpeg2pass-0.log\
-          && mv movie.mp4 1D_wave_advection.mp4\
-          && mv 1D_wave_advection.mp4 ~/git/DG_Maxwell/results && rm *")
+	  -mbd rd -trellis 2 -cmp 2 -g 300 -pass 1 -r 25 -b 18000000 movie.mp4")
