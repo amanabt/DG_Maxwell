@@ -198,13 +198,13 @@ def flux_x(u):
 
     '''
     # Normal flux
-    flux = params.c * u
+    #flux = params.c * u
     
     ## Flux for solving 1D Maxwell's equations
-    #flux = u.copy()
+    flux = u.copy() # Always copy
     
-    #flux[:, :, 0] = -u[:, :, 1]
-    #flux[:, :, 1] = -u[:, :, 0]
+    flux[:, :, 0] = -u[:, :, 1]
+    flux[:, :, 1] = -u[:, :, 0]
     
     return flux
 
@@ -469,10 +469,41 @@ def RK4_timestepping(A_inverse, u, delta_t):
               The change in u at the mapped LGL points.
     '''
 
+    # DBC
+    u[0, 0, 0]   = 0.
+    u[-1, -1, 0] = 0.
+
+    u[0, 0, 1]   = 0.
+    u[-1, -1, 1] = 0.
+
     k1 = utils.matmul_3D(A_inverse, b_vector(u))
+    k1[0, 0, 0]   = 0.
+    k1[-1, -1, 0] = 0.
+
+    k1[0, 0, 1]   = 0.
+    k1[-1, -1, 1] = 0.
+
     k2 = utils.matmul_3D(A_inverse, b_vector(u + k1 * delta_t / 2))
+    k2[0, 0, 0]   = 0.
+    k2[-1, -1, 0] = 0.
+
+    k2[0, 0, 1]   = 0.
+    k2[-1, -1, 1] = 0.
+
     k3 = utils.matmul_3D(A_inverse, b_vector(u + k2 * delta_t / 2))
+    k3[0, 0, 0]   = 0.
+    k3[-1, -1, 0] = 0.
+
+    k3[0, 0, 1]   = 0.
+    k3[-1, -1, 1] = 0.
+
     k4 = utils.matmul_3D(A_inverse, b_vector(u + k3 * delta_t))
+    k4[0, 0, 0]   = 0.
+    k4[-1, -1, 0] = 0.
+
+    k4[0, 0, 1]   = 0.
+    k4[-1, -1, 1] = 0.
+
 
     delta_u = delta_t * (k1 + 2 * k2 + 2 * k3 + k4) / 6
 
@@ -508,33 +539,33 @@ def time_evolution(u = None):
 
     element_LGL = params.element_LGL
     delta_t     = params.delta_t
-    shape_u_n = utils.shape(u)
+    shape_u_n   = utils.shape(u)
     time        = params.time
-    A_inverse = af.tile(af.inverse(A_matrix()),
-                        d0 = 1, d1 = 1,
-                        d2 = shape_u_n[2])
+    A_inverse   = af.tile(af.inverse(A_matrix()),
+                          d0 = 1, d1 = 1,
+                          d2 = shape_u_n[2])
 
     element_boundaries = af.np_to_af_array(params.np_element_array)
     
     for t_n in trange(0, time.shape[0]):
-        if (t_n % 20) == 0:
-            h5file = h5py.File('results/hdf5_%02d/dump_timestep_%06d' %(int(params.N_LGL), int(t_n)) + '.hdf5', 'w')
-            dset   = h5file.create_dataset('u_i', data = u, dtype = 'd')
+        #if (t_n % 20) == 0:
+            #h5file = h5py.File('results/hdf5_%02d/dump_timestep_%06d' %(int(params.N_LGL), int(t_n)) + '.hdf5', 'w')
+            #dset   = h5file.create_dataset('u_i', data = u, dtype = 'd')
 
-            dset[:, :] = u[:, :]
+            #dset[:, :] = u[:, :]
 
         # Code for solving 1D Maxwell's Equations
         ## Storing u at timesteps which are multiples of 100.
-        #if (t_n % 5) == 0:
-            #h5file = h5py.File('results/hdf5_%02d/dump_timestep_%06d' \
-                #%(int(params.N_LGL), int(t_n)) + '.hdf5', 'w')
-            #Ez_dset   = h5file.create_dataset('E_z', data = u[:, :, 0],
-                                              #dtype = 'd')
-            #By_dset   = h5file.create_dataset('B_y', data = u[:, :, 1],
-                                              #dtype = 'd')
+        if (t_n % 5) == 0:
+            h5file = h5py.File('results/hdf5_%02d/dump_timestep_%06d' \
+                %(int(params.N_LGL), int(t_n)) + '.hdf5', 'w')
+            Ez_dset   = h5file.create_dataset('E_z', data = u[:, :, 0],
+                                              dtype = 'd')
+            By_dset   = h5file.create_dataset('B_y', data = u[:, :, 1],
+                                              dtype = 'd')
 
-            #Ez_dset[:, :] = u[:, :, 0]
-            #By_dset[:, :] = u[:, :, 1]
+            Ez_dset[:, :] = u[:, :, 0]
+            By_dset[:, :] = u[:, :, 1]
 
 
         # Implementing RK 4 scheme
