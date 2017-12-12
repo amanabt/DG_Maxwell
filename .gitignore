@@ -199,4 +199,6 @@ Thumbs.db
 !dg_maxwell/tests/msh_parser/mesh/*
 !examples/maxwells_equations/*
 !examples/lagrange_interpolation_general/*
+!examples/advection_1d_DBC/*
+
 !docs/quazar_logo.png
