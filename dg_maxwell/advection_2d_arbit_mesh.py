@@ -29,8 +29,25 @@ def A_matrix(advec_var):
 
 def volume_integral(u, advec_var):
     '''
-    Vectorize, p, q, moddims.
+    Calculates the volume integral term for the :math:`x-y` formulation of
+    advection equation. This function will work for arbitrary meshes, but
+    only for meshes composed of :math:`2^{nd}` order square elements with
+    edge length of :math:`0.2` units in the :math:`x-y` plane. This function
+    can also calculate the volume term for multiple advection equations.
+
+    Parameters
+    ----------
+    u : af.Array [N_LGL^2 N_elements M 1]
+        ``u_e_ij`` for :math:`M` separate equations.
+
+    advec_var : :py:meth:`dg_maxwell.global_variables.advection_variables`
+    
+    Returns
+    -------
+    volume_integral : af.Array [N_LGL^2 M 1 1]
+                      Volume integral for :math:`M` advection equations.
     '''
+    shape_u_n = utils.shape(u)
     dLp_xi_ij_Lq_eta_ij = advec_var.dLp_Lq
     dLq_eta_ij_Lp_xi_ij = advec_var.dLq_Lp
     dxi_dx   = 10.
@@ -40,39 +57,87 @@ def volume_integral(u, advec_var):
     c_y = params.c_y
 
     if (params.volume_integrand_scheme_2d == 'Lobatto' and params.N_LGL == params.N_quad):
-        w_i = af.flat(af.transpose(af.tile(advec_var.lobatto_weights_quadrature, 1, params.N_LGL)))
-        w_j = af.tile(advec_var.lobatto_weights_quadrature, params.N_LGL)
+        w_i = af.flat(af.transpose(af.tile(advec_var.lobatto_weights_quadrature,
+                                           1, params.N_LGL)))
+        w_j = af.tile(advec_var.lobatto_weights_quadrature,
+                      params.N_LGL)
         wi_wj = w_i * w_j
-        wi_wj_dLp_xi = af.broadcast(utils.multiply, wi_wj, advec_var.dLp_Lq)
-        
-        volume_integrand_ij_1_sp = c_x * dxi_dx * af.broadcast(utils.multiply,
-                                                               wi_wj_dLp_xi,
-                                                               u) \
-                                 / jacobian
-        wi_wj_dLq_eta = af.broadcast(utils.multiply, w_i * w_j, advec_var.dLq_Lp)
-        volume_integrand_ij_2_sp = c_y * deta_dy * af.broadcast(utils.multiply,\
-                                               wi_wj_dLq_eta, u) / jacobian
 
-        volume_integral = af.reorder(af.sum(volume_integrand_ij_1_sp + volume_integrand_ij_2_sp, 0), 2, 1, 0)
+        wi_wj_dLp_xi = af.tile(af.broadcast(utils.multiply, wi_wj,
+                                            advec_var.dLp_Lq),
+                               d0 = 1, d1 = 1, d2 = 1, d3 = shape_u_n[2])
+
+        volume_integrand_ij_1_sp = c_x * dxi_dx \
+                                 * af.broadcast(utils.multiply,
+                                                wi_wj_dLp_xi,
+                                                af.reorder(u, d0 = 0, d1 = 1,
+                                                           d2 = 3, d3 = 2)) \
+                                                / jacobian
+
+        wi_wj_dLq_eta = af.tile(af.broadcast(utils.multiply,
+                                             w_i * w_j,
+                                             advec_var.dLq_Lp),
+                                d0 = 1, d1 = 1, d2 = 1, d3 = shape_u_n[2])
+
+        volume_integrand_ij_2_sp = c_y * deta_dy \
+                                 * af.broadcast(utils.multiply,
+                                                wi_wj_dLq_eta,
+                                                af.reorder(u, d0 = 0, d1 = 1,
+                                                           d2 = 3, d3 = 2)) \
+                                                / jacobian
+
+        volume_integral = af.reorder(af.sum(
+            volume_integrand_ij_1_sp + volume_integrand_ij_2_sp, dim = 0), \
+                d0 = 2, d1 = 1, d2 = 3, d3 = 0)
 
     else:
-        volume_integrand_ij_1 = c_x * dxi_dx * af.broadcast(utils.multiply,\
-                                        dLp_xi_ij_Lq_eta_ij,\
-                                        u) / jacobian
+        volume_integrand_ij_1 = c_x * dxi_dx * af.broadcast(utils.multiply,
+                                                            af.tile(dLp_xi_ij_Lq_eta_ij,
+                                                                    d0 = 1, d1 = 1, d2 = 1,
+                                                                    d3 = shape_u_n[2]),
+                                                            af.reorder(u, d0 = 0, d1 = 1,
+                                                                       d2 = 3, d3 = 2)) \
+                                                            / jacobian
 
-        volume_integrand_ij_2 = c_y * deta_dy * af.broadcast(utils.multiply,\
-                                        dLq_eta_ij_Lp_xi_ij,\
-                                        u) / jacobian
+        volume_integrand_ij_2 = c_y * deta_dy * af.broadcast(utils.multiply,
+                                                             af.tile(dLq_eta_ij_Lp_xi_ij,
+                                                                     d0 = 1, d1 = 1, d2 = 1,
+                                                                     d3 = shape_u_n[2]),
+                                                             af.reorder(u, d0 = 0, d1 = 1,
+                                                                        d2 = 3, d3 = 2)) \
+                                                             / jacobian
 
-        volume_integrand_ij = af.moddims(volume_integrand_ij_1 + volume_integrand_ij_2, params.N_LGL ** 2,\
-                                         (params.N_LGL ** 2) * 100)
+        volume_integrand_ij = af.moddims(volume_integrand_ij_1 + volume_integrand_ij_2,
+                                         d0 = params.N_LGL ** 2,
+                                         d1 = (params.N_LGL ** 2) * 100,
+                                         d2 = 1,
+                                         d3 = shape_u_n[2])
 
-        lagrange_interpolation = af.moddims(wave_equation_2d.lag_interpolation_2d(volume_integrand_ij, advec_var.Li_Lj_coeffs),
-                                            params.N_LGL, params.N_LGL, params.N_LGL ** 2  * 100)
+        volume_integrand_ij = af.moddims(af.reorder(volume_integrand_ij, d0 = 0,
+                                                    d1 = 1, d2 = 3, d3 = 2),
+                                         d0 = params.N_LGL * params.N_LGL,
+                                         d1 = params.N_LGL * params.N_LGL \
+                                            * advec_var.elements.shape[0] \
+                                            * shape_u_n[2],
+                                         d2 = 1)
 
-        volume_integrand_total = utils.integrate_2d_multivar_poly(lagrange_interpolation[:, :, :],\
-                                                    params.N_quad,'gauss', advec_var)
-        volume_integral        = af.transpose(af.moddims(volume_integrand_total, 100, params.N_LGL ** 2))
+        lagrange_interpolation = wave_equation_2d.lag_interpolation_2d(volume_integrand_ij,
+                                                                       advec_var.Li_Lj_coeffs)
+
+        volume_integrand_total = utils.integrate_2d_multivar_poly(lagrange_interpolation,
+                                                                  params.N_quad,'gauss',
+                                                                  advec_var)
+
+        volume_integral = af.moddims(volume_integrand_total,
+                                     d0 = params.N_LGL \
+                                        * params.N_LGL \
+                                        * advec_var.elements.shape[0],
+                                     d1 = shape_u_n[2])
+
+        volume_integral = af.transpose(af.moddims(volume_integral,
+                                                  d0 = advec_var.elements.shape[0],
+                                                  d1 = params.N_LGL ** 2,
+                                                  d2 = shape_u_n[2]))
 
     return volume_integral
 

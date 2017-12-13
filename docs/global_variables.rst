@@ -5,5 +5,5 @@ global_variables
 ================
 
 .. autoclass:: dg_maxwell.global_variables.advection_variables
-    :members:
+    :members: __init__, reassign_2d_elements
 
