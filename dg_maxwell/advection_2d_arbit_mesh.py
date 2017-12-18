@@ -661,8 +661,8 @@ def lf_flux_all_edges_vectorized(u_e_ij, advec_var):
 
     # Create u_edge_vec
     u_edge_vec = af.constant(0., d0 = params.N_LGL,
-                            d1 = advec_var.elements.shape[0],
-                            d2 = 4, d3 = shape_u[2], dtype = af.Dtype.f64)
+                             d1 = advec_var.elements.shape[0],
+                             d2 = 4, d3 = shape_u[2], dtype = af.Dtype.f64)
 
     u_edge_vec[:, :, 0, :] = u_left
     u_edge_vec[:, :, 1, :] = u_bottom
@@ -752,10 +752,35 @@ def lf_flux_all_edges_vectorized(u_e_ij, advec_var):
 
 def surface_term_vectorized(u, advec_var):
     '''
-    '''
+    Calculates the surface term for 2D wave equation :math:`x-y` formulation.
+    This function will work for arbitrary non-contiguous meshes on a condition
+    that the elements in the meshes are square of dimention :math:`0.2` units.
+    See link for :math:`x-y` formulation surface term see `2d_advection.pdf`_
+    
+    .. _2d_advection.pdf: https://goo.gl/jBmgh6
+    
+    .. note::
+       See date 2017-12-18 in the Research Notebook 2 for the implementation logs.
 
+    Parameters
+    ----------
+    u : af.Array [N_LGL N_elements M 1]
+        ``u_e_ij`` for which the surface term is to be calculated.
+        This function can calculate the surface term for :math:`M`
+        ``u``.
+        simultaneously.
+
+    advec_var : :py:meth:`dg_maxwell.global_variables.advection_variables`
+    
+    Returns
+    -------
+    surface_term : af.Array [N_LGL*N_LGL N_elements M 1]
+                   Surface term calculated for :math:`M` ``u``.
+    '''
     dx_dxi  = 0.1
     dy_deta = 0.1
+
+    shape_u = utils.shape(u)
 
     element_lf_flux = lf_flux_all_edges_vectorized(u, advec_var)
 
@@ -833,23 +858,26 @@ def surface_term_vectorized(u, advec_var):
                                        Lp_minus_1_slow_tile \
                                      * Lq_eta_j_quick_tile  \
                                      * dy_deta_tile)
+
     integrand_left_edge_merge_elements = \
         af.transpose(af.moddims(af.transpose(integrand_left_edge),
                                 d0 = integrand_left_edge.shape[1],
                                 d1 = integrand_left_edge.shape[0] \
-                                   * integrand_left_edge.shape[2],
-                               d2 = 1))
-    
+                                   * integrand_left_edge.shape[2] \
+                                   * shape_u[2],
+                                d2 = 1))
+
     integrand_left_edge_merge_elements = lagrange.lagrange_interpolation(
         integrand_left_edge_merge_elements, advec_var)
     integral_left_edge_merge_elements  = utils.integrate_1d(
         integrand_left_edge_merge_elements,
         order = params.N_LGL + 1,
         scheme = 'gauss')
-    
+
     integral_left_edge = af.moddims(integral_left_edge_merge_elements,
                                     d0 = integrand_left_edge.shape[0],
-                                    d1 = integrand_left_edge.shape[2])
+                                    d1 = integrand_left_edge.shape[2],
+                                    d2 = shape_u[2])
 
     # 6. Calculate the surface term intergal for the bottom edge
 
@@ -860,9 +888,11 @@ def surface_term_vectorized(u, advec_var):
     integrand_bottom_edge_merge_elements = af.transpose(
         af.moddims(af.transpose(integrand_bottom_edge),
                    d0 = integrand_bottom_edge.shape[1],
-                   d1 = integrand_bottom_edge.shape[0]  \
-                      * integrand_bottom_edge.shape[2], \
+                   d1 = integrand_bottom_edge.shape[0] \
+                      * integrand_bottom_edge.shape[2] \
+                      * shape_u[2],
                    d2 = 1))
+
     integrand_bottom_edge_merge_elements = lagrange.lagrange_interpolation(
         integrand_bottom_edge_merge_elements, advec_var)
     integral_bottom_edge_merge_elements  = utils.integrate_1d(
@@ -870,7 +900,8 @@ def surface_term_vectorized(u, advec_var):
         scheme = 'gauss')
     integral_bottom_edge = af.moddims(integral_bottom_edge_merge_elements,
                                       d0 = integrand_bottom_edge.shape[0],
-                                      d1 = integrand_bottom_edge.shape[2])
+                                      d1 = integrand_bottom_edge.shape[2],
+                                      d2 = shape_u[2])
 
 
     # 7. Calculate the surface term intergal for the right edge
@@ -883,8 +914,10 @@ def surface_term_vectorized(u, advec_var):
         af.moddims(af.transpose(integrand_right_edge),
                    d0 = integrand_right_edge.shape[1],
                    d1 = integrand_right_edge.shape[0] \
-                   * integrand_right_edge.shape[2], \
+                      * integrand_right_edge.shape[2] \
+                      * shape_u[2],
                    d2 = 1))
+
     integrand_right_edge_merge_elements = lagrange.lagrange_interpolation(
         integrand_right_edge_merge_elements, advec_var)
     integral_right_edge_merge_elements  = utils.integrate_1d(
@@ -892,7 +925,8 @@ def surface_term_vectorized(u, advec_var):
         scheme = 'gauss')
     integral_right_edge = af.moddims(integral_right_edge_merge_elements,
                                      d0 = integrand_right_edge.shape[0],
-                                     d1 = integrand_right_edge.shape[2])
+                                     d1 = integrand_right_edge.shape[2],
+                                     d2 = shape_u[2])
 
 
     # 8. Calculate the surface term intergal for the top edge
@@ -904,8 +938,9 @@ def surface_term_vectorized(u, advec_var):
     integrand_top_edge_merge_elements = af.transpose(
         af.moddims(af.transpose(integrand_top_edge),
                    d0 = integrand_top_edge.shape[1],
-                   d1 = integrand_top_edge.shape[0]  \
-                      * integrand_top_edge.shape[2], \
+                   d1 = integrand_top_edge.shape[0] \
+                      * integrand_top_edge.shape[2] \
+                      * shape_u[2],
                    d2 = 1))
     integrand_top_edge_merge_elements = lagrange.lagrange_interpolation(
         integrand_top_edge_merge_elements, advec_var)
@@ -914,7 +949,8 @@ def surface_term_vectorized(u, advec_var):
         scheme = 'gauss')
     integral_top_edge = af.moddims(integral_top_edge_merge_elements,
                                    d0 = integrand_top_edge.shape[0],
-                                   d1 = integrand_top_edge.shape[2])
+                                   d1 = integrand_top_edge.shape[2],
+                                   d2 = shape_u[2])
 
     surface_term = - integral_left_edge   \
                    - integral_bottom_edge \
@@ -922,7 +958,6 @@ def surface_term_vectorized(u, advec_var):
                    + integral_top_edge
 
     return surface_term
-
 
 
 def b_vector(u, advec_var):
