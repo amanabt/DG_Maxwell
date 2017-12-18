@@ -224,6 +224,7 @@ def u_at_edge_old(u_e_ij, edge_id):
 
 def u_at_edge(u_e_ij, edge_id, advec_var):
     '''
+    This function will work for multiple :math:`u`.
     '''
     # Function to get u at the edge of an element
 
@@ -499,7 +500,7 @@ def u_at_other_element_edge(u_edge_vec, element_edge_id,
 
 
 
-def lf_flux_all_edges_vectorized(u_e_ij, advec_var):
+def lf_flux_all_edges_vectorized_old(u_e_ij, advec_var):
     '''
     '''
     ## Create 4 arrays to store the u_e_ij of the edges
@@ -538,7 +539,7 @@ def lf_flux_all_edges_vectorized(u_e_ij, advec_var):
     u_edge_vec[:, :, 1] = u_bottom
     u_edge_vec[:, :, 2] = u_right
     u_edge_vec[:, :, 3] = u_top
-    
+
     ## Create 4 arrays to store the u_edge of the other edge sharing element
 
     # Left edge
@@ -615,6 +616,136 @@ def lf_flux_all_edges_vectorized(u_e_ij, advec_var):
 
     element_lf_flux = af.reorder(element_lf_flux, d0 = 1, d1 = 2, d2 = 0)
     
+    return element_lf_flux
+
+
+
+def lf_flux_all_edges_vectorized(u_e_ij, advec_var):
+    '''
+    Calculates the Lax Friedrichs flux at all the edges. It can take a vector
+    of ``u_e_ij``.
+    '''
+    shape_u = utils.shape(u_e_ij)
+
+    left_edge_id = 0
+    u_left = u_at_edge(u_e_ij,
+                       edge_id = left_edge_id,
+                       advec_var = advec_var)
+    u_left = af.reorder(u_left, d0 = 0, d1 = 1, d2 = 3, d3 = 2)
+
+    # Bottom edge
+    bottom_edge_id = 1
+    u_bottom = u_at_edge(u_e_ij,
+                         edge_id = bottom_edge_id,
+                         advec_var = advec_var)
+
+    u_bottom = af.reorder(u_bottom, d0 = 0, d1 = 1, d2 = 3, d3 = 2)
+
+    # Right edge
+    right_edge_id = 2
+    u_right = u_at_edge(u_e_ij,
+                        edge_id = right_edge_id,
+                        advec_var = advec_var)
+
+    u_right = af.reorder(u_right, d0 = 0, d1 = 1, d2 = 3, d3 = 2)
+
+    # Top edge
+    top_edge_id = 3
+    u_top = u_at_edge(u_e_ij,
+                      edge_id = top_edge_id,
+                      advec_var = advec_var)
+
+    u_top = af.reorder(u_top, d0 = 0, d1 = 1, d2 = 3, d3 = 2)
+
+    # [LOOKS FINE]
+
+    # Create u_edge_vec
+    u_edge_vec = af.constant(0., d0 = params.N_LGL,
+                            d1 = advec_var.elements.shape[0],
+                            d2 = 4, d3 = shape_u[2], dtype = af.Dtype.f64)
+
+    u_edge_vec[:, :, 0, :] = u_left
+    u_edge_vec[:, :, 1, :] = u_bottom
+    u_edge_vec[:, :, 2, :] = u_right
+    u_edge_vec[:, :, 3, :] = u_top
+
+    ## Create 4 arrays to store the u_edge of the other edge sharing element
+
+    # Left edge
+
+    u_left_other_element = u_at_other_element_edge(u_edge_vec = u_edge_vec,
+                                                   element_edge_id = left_edge_id,
+                                                   advec_var = advec_var)
+
+    # Bottom edge
+    u_bottom_other_element = u_at_other_element_edge(u_edge_vec = u_edge_vec,
+                                                     element_edge_id = bottom_edge_id,
+                                                     advec_var = advec_var)
+
+    # Right edge
+    u_right_other_element = u_at_other_element_edge(u_edge_vec = u_edge_vec,
+                                                    element_edge_id = right_edge_id,
+                                                    advec_var = advec_var)
+
+    # Top edge
+    u_top_other_element = u_at_other_element_edge(u_edge_vec = u_edge_vec,
+                                                  element_edge_id = top_edge_id,
+                                                  advec_var = advec_var)
+
+    # [VALUES NOT TESTED]
+
+    # Find the LF flux for each edge
+
+    # Left edge
+
+    flux_left = wave_equation_2d.F_x(u_left)
+    flux_left_other_element = wave_equation_2d.F_x(u_left_other_element)
+
+    lf_flux_left_edge = lax_friedrichs_flux(u_left_other_element,
+                                            flux_left_other_element,
+                                            u_left, flux_left)
+
+    # Bottom edge
+
+    flux_bottom = wave_equation_2d.F_y(u_bottom)
+    flux_bottom_other_element = wave_equation_2d.F_y(u_bottom_other_element)
+
+    lf_flux_bottom_edge = lax_friedrichs_flux(u_bottom_other_element,
+                                              flux_bottom_other_element,
+                                              u_bottom, flux_bottom)
+
+    # Right edge
+
+    flux_right = wave_equation_2d.F_x(u_right)
+    flux_right_other_element = wave_equation_2d.F_x(u_right_other_element)
+
+    lf_flux_right_edge = lax_friedrichs_flux(u_right, flux_right,
+                                             u_right_other_element,
+                                             flux_right_other_element)
+
+    # Top edge
+
+    flux_top = wave_equation_2d.F_y(u_top)
+    flux_top_other_element = wave_equation_2d.F_y(u_top_other_element)
+
+    lf_flux_top_edge = lax_friedrichs_flux(u_top, flux_top,
+                                           u_top_other_element,
+                                           flux_top_other_element)
+
+    # Store the fluxes in a [N_elements 4 N_LGL 1]
+
+    element_lf_flux = af.constant(0, d0 = params.N_LGL,
+                                  d1 = advec_var.elements.shape[0],
+                                  d2 = 4, d3 = shape_u[2],
+                                  dtype = af.Dtype.f64)
+
+    element_lf_flux[:, :, left_edge_id]   = lf_flux_left_edge
+    element_lf_flux[:, :, bottom_edge_id] = lf_flux_bottom_edge
+    element_lf_flux[:, :, right_edge_id]  = lf_flux_right_edge
+    element_lf_flux[:, :, top_edge_id]    = lf_flux_top_edge
+
+    element_lf_flux = af.reorder(element_lf_flux, d0 = 1, d1 = 2, d2 = 0)
+
     return element_lf_flux
 
 
