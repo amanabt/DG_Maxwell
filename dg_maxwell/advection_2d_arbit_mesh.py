@@ -805,10 +805,10 @@ def time_evolution(u_init, gv):
     A_inverse = af.tile(A_inverse, d0 = 1, d1 = 1, d2 = shape_u[2])
 
     for i in trange(time.shape[0]):
-        #L1_norm = af.mean(af.abs(u_init - u))
+        L1_norm = af.mean(af.abs(u_init - u))
 
-        #if (L1_norm >= 100):
-            #break
+        if (L1_norm >= 100):
+            break
         if (i % 1) == 0:
             h5file = h5py.File('results/2d_hdf5_%02d/dump_timestep_%06d' %(int(params.N_LGL), int(i)) + '.hdf5', 'w')
             dset   = h5file.create_dataset('u_i', data = u, dtype = 'd')
