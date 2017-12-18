@@ -27,6 +27,44 @@ def A_matrix(advec_var):
 
 
 
+def upwind_flux_x(left_state, right_state):
+    '''
+    '''
+    E_z = 0.5 * (right_state[:, :, 0] + left_state[:, :, 0] + right_state[:, :, 2] - left_state[:, :, 2])
+    B_y = 0.5 * (right_state[:, :, 0] - left_state[:, :, 0] + right_state[:, :, 2] + left_state[:, :, 2])
+    B_x = 0.5 * (right_state[:, :, 1] + left_state[:, :, 1])
+
+    flux = af.constant(0.,
+                       d0 = left_state.shape[0],
+                       d1 = left_state.shape[1],
+                       d2 = left_state.shape[2],
+                       dtype = af.Dtype.f64)
+
+    flux[:, :, 0] = - B_y
+    flux[:, :, 2] = - E_z
+    
+    return flux
+
+def upwind_flux_x(bottom_state, top_state):
+    '''
+    '''
+    E_z = 0.5 * (bottom_state[:, :, 0] + top_state[:, :, 0] + bottom_state[:, :, 1] - top_state[:, :, 1])
+    B_y = 0.5 * (bottom_state[:, :, 2] + top_state[:, :, 2])
+    B_x = 0.5 * (bottom_state[:, :, 0] - top_state[:, :, 0] + bottom_state[:, :, 1] + top_state[:, :, 1])
+
+    flux = af.constant(0.,
+                       d0 = bottom_state.shape[0],
+                       d1 = bottom_state.shape[1],
+                       d2 = bottom_state.shape[2],
+                       dtype = af.Dtype.f64)
+
+    flux[:, :, 0] = B_x
+    flux[:, :, 1] = E_z
+    
+    return flux
+
+
+
 def volume_integral(u, advec_var):
     '''
     Calculates the volume integral term for the :math:`x-y` formulation of
@@ -185,6 +223,55 @@ def u_at_edge_old(u_e_ij, edge_id):
 
 
 def u_at_edge(u_e_ij, edge_id, advec_var):
+    '''
+    '''
+    # Function to get u at the edge of an element
+
+    shape_u = utils.shape(u_e_ij)
+
+    if edge_id == 0:
+
+        u_e_ij = af.reorder(u_e_ij, d0 = 0, d1 = 3, d2 = 1, d3 = 2)
+        u_e_ij = af.moddims(u_e_ij, d0 = params.N_LGL, d1 = params.N_LGL,
+                            d2 = advec_var.elements.shape[0], d3 = shape_u[2])
+        u_edge = af.reorder(u_e_ij[:, 0, :], d0 = 0, d1 = 2, d2 = 3, d3 = 1)
+
+        return u_edge
+
+    # Get bottom edge of all the elements
+
+    if edge_id == 1:
+        u_e_ij = af.reorder(u_e_ij, d0 = 0, d1 = 3, d2 = 1, d3 = 2)
+        u_e_ij = af.moddims(u_e_ij, d0 = params.N_LGL, d1 = params.N_LGL,
+                            d2 = advec_var.elements.shape[0], d3 = shape_u[2])
+        u_edge = af.reorder(u_e_ij[0, :, :], d0 = 1, d1 = 2, d2 = 3, d3 = 0)
+
+        return u_edge
+
+    # Get right edge of all the elements
+
+    if edge_id == 2:
+        u_e_ij = af.reorder(u_e_ij, d0 = 0, d1 = 3, d2 = 1, d3 = 2)
+        u_e_ij = af.moddims(u_e_ij, d0 = params.N_LGL, d1 = params.N_LGL,
+                            d2 = advec_var.elements.shape[0], d3 = shape_u[2])
+        u_edge = af.reorder(u_e_ij[:, -1, :], d0 = 0, d1 = 2, d2 = 3, d3 = 1)
+
+        return u_edge
+
+    # Get top edge of all the elements
+
+    if edge_id == 3:
+        u_e_ij = af.reorder(u_e_ij, d0 = 0, d1 = 3, d2 = 1, d3 = 2)
+        u_e_ij = af.moddims(u_e_ij, d0 = params.N_LGL, d1 = params.N_LGL,
+                            d2 = advec_var.elements.shape[0], d3 = shape_u[2])
+
+        u_edge = af.reorder(u_e_ij[-1, :, :], d0 = 1, d1 = 2, d2 = 3, d3 = 0)
+
+        return u_edge
+
+
+
+def u_at_edge_old(u_e_ij, edge_id, advec_var):
     '''
     Finds the :math:`u` at given edge id for :math:`u_{eij}`.
     
@@ -702,7 +789,7 @@ def surface_term_vectorized(u, advec_var):
                    - integral_bottom_edge \
                    + integral_right_edge  \
                    + integral_top_edge
-        
+
     return surface_term
 
 
