@@ -992,10 +992,10 @@ def RK4_timestepping(A_inverse, u, delta_t, gv):
               The change in u at the mapped LGL points.
     '''
 
-    k1 = af.matmul(A_inverse, b_vector(u, gv))
-    k2 = af.matmul(A_inverse, b_vector(u + k1 * delta_t / 2, gv))
-    k3 = af.matmul(A_inverse, b_vector(u + k2 * delta_t / 2, gv))
-    k4 = af.matmul(A_inverse, b_vector(u + k3 * delta_t, gv))
+    k1 = utils.matmul_3D(A_inverse, b_vector(u, gv))
+    k2 = utils.matmul_3D(A_inverse, b_vector(u + k1 * delta_t / 2, gv))
+    k3 = utils.matmul_3D(A_inverse, b_vector(u + k2 * delta_t / 2, gv))
+    k4 = utils.matmul_3D(A_inverse, b_vector(u + k3 * delta_t, gv))
 
     delta_u = delta_t * (k1 + 2 * k2 + 2 * k3 + k4) / 6
 
@@ -1003,7 +1003,7 @@ def RK4_timestepping(A_inverse, u, delta_t, gv):
 
 
 
-def time_evolution(gv):
+def time_evolution(u_init, gv):
     '''
     '''
     # Creating a folder to store hdf5 files. If it doesn't exist.
@@ -1011,7 +1011,8 @@ def time_evolution(gv):
     if not os.path.exists(results_directory):
         os.makedirs(results_directory)
 
-    u         = gv.u_e_ij
+    u         = u_init
+    shape_u   = utils.shape(u)
     delta_t   = gv.delta_t_2d
     time      = gv.time_2d
     u_init    = gv.u_e_ij
@@ -1026,12 +1027,13 @@ def time_evolution(gv):
     lobatto_weights = gv.lobatto_weights_quadrature
 
     A_inverse = af.np_to_af_array(np.linalg.inv(np.array(A_matrix(gv))))
+    A_inverse = af.tile(A_inverse, d0 = 1, d1 = 1, d2 = shape_u[2])
 
     for i in trange(time.shape[0]):
-        L1_norm = af.mean(af.abs(u_init - u))
+        #L1_norm = af.mean(af.abs(u_init - u))
 
-        if (L1_norm >= 100):
-            break
+        #if (L1_norm >= 100):
+            #break
         if (i % 1) == 0:
             h5file = h5py.File('results/2d_hdf5_%02d/dump_timestep_%06d' %(int(params.N_LGL), int(i)) + '.hdf5', 'w')
             dset   = h5file.create_dataset('u_i', data = u, dtype = 'd')
