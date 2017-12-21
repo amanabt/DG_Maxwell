@@ -30,8 +30,10 @@ def A_matrix(advec_var):
 def upwind_flux_x(left_state, right_state):
     '''
     '''
-    E_z = 0.5 * (right_state[:, :, 0] + left_state[:, :, 0] + right_state[:, :, 2] - left_state[:, :, 2])
-    B_y = 0.5 * (right_state[:, :, 0] - left_state[:, :, 0] + right_state[:, :, 2] + left_state[:, :, 2])
+    E_z = 0.5 * (right_state[:, :, 0] + left_state[:, :, 0] \
+        + right_state[:, :, 2] - left_state[:, :, 2])
+    B_y = 0.5 * (right_state[:, :, 0] - left_state[:, :, 0] \
+        + right_state[:, :, 2] + left_state[:, :, 2])
     B_x = 0.5 * (right_state[:, :, 1] + left_state[:, :, 1])
 
     flux = af.constant(0.,
@@ -48,9 +50,11 @@ def upwind_flux_x(left_state, right_state):
 def upwind_flux_x(bottom_state, top_state):
     '''
     '''
-    E_z = 0.5 * (bottom_state[:, :, 0] + top_state[:, :, 0] + bottom_state[:, :, 1] - top_state[:, :, 1])
+    E_z = 0.5 * (bottom_state[:, :, 0] + top_state[:, :, 0] \
+        + bottom_state[:, :, 1] - top_state[:, :, 1])
     B_y = 0.5 * (bottom_state[:, :, 2] + top_state[:, :, 2])
-    B_x = 0.5 * (bottom_state[:, :, 0] - top_state[:, :, 0] + bottom_state[:, :, 1] + top_state[:, :, 1])
+    B_x = 0.5 * (bottom_state[:, :, 0] - top_state[:, :, 0] \
+        + bottom_state[:, :, 1] + top_state[:, :, 1])
 
     flux = af.constant(0.,
                        d0 = bottom_state.shape[0],
@@ -60,7 +64,7 @@ def upwind_flux_x(bottom_state, top_state):
 
     flux[:, :, 0] = B_x
     flux[:, :, 1] = E_z
-    
+
     return flux
 
 

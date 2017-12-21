@@ -100,7 +100,7 @@ for i in trange(1000):
     h5py_data = h5py.File('results/2d_hdf5_%02d/dump_timestep_%06d' %(int(params.N_LGL), int(10 * i)) + '.hdf5', 'r')
     u_LGL     = af.np_to_af_array(h5py_data['u_i'][:])
     #print(u_LGL.shape)
-    contour_2d(u_LGL, i)
+    contour_2d(u_LGL[:, :, 0], i)
     #if i > 199 :
         #print(af.mean(af.abs(u_LGL - params.u_e_ij)))
 
