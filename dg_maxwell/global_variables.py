@@ -181,10 +181,10 @@ class advection_variables:
         self.delta_y = self.delta_x
 
         self.delta_t_2d = courant * self.delta_x * self.delta_y \
-                        / (self.delta_x * c_x + self.delta_y * c_y)
+                        / (self.delta_x * abs(c_x) + self.delta_y * abs(c_y))
 
-        self.c_lax_2d_x = c_x
-        self.c_lax_2d_y = c_y
+        self.c_lax_2d_x = abs(c_x)
+        self.c_lax_2d_y = abs(c_y)
 
         self.nodes, self.elements = msh_parser.read_order_2_msh(mesh_file)
 
