@@ -90,11 +90,14 @@ def volume_integral(u, advec_var):
     dLq_eta_ij_Lp_xi_ij = advec_var.dLq_Lp
     dxi_dx   = 10.
     deta_dy  = 10.
+    dx_dxi   = 0.1 # For test [TODO][REMOVE]
+    dy_deta  = 0.1 # For test [TODO][REMOVE]
     jacobian = 100.
     c_x = params.c_x
     c_y = params.c_y
 
     if (params.volume_integrand_scheme_2d == 'Lobatto' and params.N_LGL == params.N_quad):
+        #print('option1')
         w_i = af.flat(af.transpose(af.tile(advec_var.lobatto_weights_quadrature,
                                            1, params.N_LGL)))
         w_j = af.tile(advec_var.lobatto_weights_quadrature,
@@ -105,7 +108,7 @@ def volume_integral(u, advec_var):
                                             advec_var.dLp_Lq),
                                d0 = 1, d1 = 1, d2 = 1, d3 = shape_u_n[2])
 
-        volume_integrand_ij_1_sp = c_x * dxi_dx \
+        volume_integrand_ij_1_sp = c_x * dxi_dx * dx_dxi \
                                  * af.broadcast(utils.multiply,
                                                 wi_wj_dLp_xi,
                                                 af.reorder(u, d0 = 0, d1 = 1,
@@ -117,7 +120,7 @@ def volume_integral(u, advec_var):
                                              advec_var.dLq_Lp),
                                 d0 = 1, d1 = 1, d2 = 1, d3 = shape_u_n[2])
 
-        volume_integrand_ij_2_sp = c_y * deta_dy \
+        volume_integrand_ij_2_sp = c_y * deta_dy * dy_deta \
                                  * af.broadcast(utils.multiply,
                                                 wi_wj_dLq_eta,
                                                 af.reorder(u, d0 = 0, d1 = 1,
@@ -129,7 +132,8 @@ def volume_integral(u, advec_var):
                 d0 = 2, d1 = 1, d2 = 3, d3 = 0)
 
     else:
-        volume_integrand_ij_1 = c_x * dxi_dx * af.broadcast(utils.multiply,
+        #print('option2')
+        volume_integrand_ij_1 = c_x * dxi_dx * dx_dxi * af.broadcast(utils.multiply,
                                                             af.tile(dLp_xi_ij_Lq_eta_ij,
                                                                     d0 = 1, d1 = 1, d2 = 1,
                                                                     d3 = shape_u_n[2]),
@@ -137,7 +141,7 @@ def volume_integral(u, advec_var):
                                                                        d2 = 3, d3 = 2)) \
                                                             / jacobian
 
-        volume_integrand_ij_2 = c_y * deta_dy * af.broadcast(utils.multiply,
+        volume_integrand_ij_2 = c_y * deta_dy * dy_deta * af.broadcast(utils.multiply,
                                                              af.tile(dLq_eta_ij_Lp_xi_ij,
                                                                      d0 = 1, d1 = 1, d2 = 1,
                                                                      d3 = shape_u_n[2]),
@@ -524,6 +528,141 @@ def lf_flux_all_edges_vectorized(u_e_ij, advec_var):
     return element_lf_flux
 
 
+def upwind_flux_x(left_state, right_state, c_x):
+    '''
+    '''
+    if c_x > 0:
+        return left_state
+    
+    if c_x == 0:
+        return (left_state + right_state) / 2
+    
+    if c_x < 0:
+        return right_state
+    
+    return
+
+def upwind_flux_y(bottom_state, top_state, c_y):
+    '''
+    '''
+    if c_y > 0:
+        return bottom_state
+
+    if c_y == 0:
+        return (bottom_state + top_state) / 2
+
+    if c_y < 0:
+        return top_state
+
+    return
+
+
+
+def flux_all_edges_upwind_scheme(u_e_ij, advec_var):
+    '''
+    '''
+    shape_u = utils.shape(u_e_ij)
+
+    left_edge_id = 0
+    u_left = u_at_edge(u_e_ij,
+                       edge_id = left_edge_id,
+                       advec_var = advec_var)
+    u_left = af.reorder(u_left, d0 = 0, d1 = 1, d2 = 3, d3 = 2)
+
+    # Bottom edge
+    bottom_edge_id = 1
+    u_bottom = u_at_edge(u_e_ij,
+                         edge_id = bottom_edge_id,
+                         advec_var = advec_var)
+
+    u_bottom = af.reorder(u_bottom, d0 = 0, d1 = 1, d2 = 3, d3 = 2)
+
+    # Right edge
+    right_edge_id = 2
+    u_right = u_at_edge(u_e_ij,
+                        edge_id = right_edge_id,
+                        advec_var = advec_var)
+
+    u_right = af.reorder(u_right, d0 = 0, d1 = 1, d2 = 3, d3 = 2)
+
+    # Top edge
+    top_edge_id = 3
+    u_top = u_at_edge(u_e_ij,
+                      edge_id = top_edge_id,
+                      advec_var = advec_var)
+
+    u_top = af.reorder(u_top, d0 = 0, d1 = 1, d2 = 3, d3 = 2)
+
+    # [LOOKS FINE]
+
+    # Create u_edge_vec
+    u_edge_vec = af.constant(0., d0 = params.N_LGL,
+                             d1 = advec_var.elements.shape[0],
+                             d2 = 4, d3 = shape_u[2], dtype = af.Dtype.f64)
+
+    u_edge_vec[:, :, 0, :] = u_left
+    u_edge_vec[:, :, 1, :] = u_bottom
+    u_edge_vec[:, :, 2, :] = u_right
+    u_edge_vec[:, :, 3, :] = u_top
+
+    ## Create 4 arrays to store the u_edge of the other edge sharing element
+
+    # Left edge
+
+    u_left_other_element = u_at_other_element_edge(u_edge_vec = u_edge_vec,
+                                                   element_edge_id = left_edge_id,
+                                                   advec_var = advec_var)
+
+    # Bottom edge
+    u_bottom_other_element = u_at_other_element_edge(u_edge_vec = u_edge_vec,
+                                                     element_edge_id = bottom_edge_id,
+                                                     advec_var = advec_var)
+
+    # Right edge
+    u_right_other_element = u_at_other_element_edge(u_edge_vec = u_edge_vec,
+                                                    element_edge_id = right_edge_id,
+                                                    advec_var = advec_var)
+
+    # Top edge
+    u_top_other_element = u_at_other_element_edge(u_edge_vec = u_edge_vec,
+                                                  element_edge_id = top_edge_id,
+                                                  advec_var = advec_var)
+
+    # [VALUES NOT TESTED]
+
+    # Find the LF flux for each edge
+
+    # Left edge
+
+    u_at_left_edge = upwind_flux_x(u_left_other_element, u_left, params.c_x)
+    flux_left_edge = wave_equation_2d.F_x(u_at_left_edge)
+
+    u_at_bottom_edge = upwind_flux_y(u_bottom_other_element, u_bottom, params.c_y)
+    flux_bottom_edge = wave_equation_2d.F_y(u_at_bottom_edge)
+
+    u_at_right_edge = upwind_flux_x(u_right, u_right_other_element, params.c_x)
+    flux_right_edge = wave_equation_2d.F_x(u_at_right_edge)
+
+    u_at_top_edge = upwind_flux_x(u_top, u_top_other_element, params.c_y)
+    flux_top_edge = wave_equation_2d.F_y(u_at_top_edge)
+
+    # Store the fluxes in a [N_elements 4 N_LGL 1]
+
+    element_lf_flux = af.constant(0, d0 = params.N_LGL,
+                                  d1 = advec_var.elements.shape[0],
+                                  d2 = 4, d3 = shape_u[2],
+                                  dtype = af.Dtype.f64)
+
+    element_lf_flux[:, :, left_edge_id]   = flux_left_edge
+    element_lf_flux[:, :, bottom_edge_id] = flux_bottom_edge
+    element_lf_flux[:, :, right_edge_id]  = flux_right_edge
+    element_lf_flux[:, :, top_edge_id]    = flux_top_edge
+
+    element_lf_flux = af.reorder(element_lf_flux, d0 = 1, d1 = 2, d2 = 0)
+
+    return element_lf_flux
+
+
 
 def surface_term_vectorized(u, advec_var):
     '''
@@ -557,8 +696,10 @@ def surface_term_vectorized(u, advec_var):
 
     shape_u = utils.shape(u)
 
-    element_lf_flux = lf_flux_all_edges_vectorized(u, advec_var)
-
+    #element_lf_flux = lf_flux_all_edges_vectorized(u, advec_var)
+    
+    element_lf_flux = flux_all_edges_upwind_scheme(u, advec_var)
+    
     # 1. Find L_p(1) and L_p(-1)
     Lp = advec_var.lagrange_coeffs
     Lq = advec_var.lagrange_coeffs
@@ -608,23 +749,23 @@ def surface_term_vectorized(u, advec_var):
                                d1 = params.N_LGL)
 
     F_xi_minus_1_eta_j = af.transpose(
-        af.tile(wave_equation_2d.F_x(af.reorder(element_lf_flux[:, 0],
-                                                d0 = 2, d1 = 1, d2 = 0)),
+        af.tile(af.reorder(element_lf_flux[:, 0],
+                           d0 = 2, d1 = 1, d2 = 0),
                 d0 = 1, d1 = params.N_LGL * params.N_LGL))
 
     F_xi_i_eta_minus_1 = af.transpose(
-        af.tile(wave_equation_2d.F_y(af.reorder(element_lf_flux[:, 1],
-                                                d0 = 2, d1 = 1, d2 = 0)),
+        af.tile(af.reorder(element_lf_flux[:, 1],
+                           d0 = 2, d1 = 1, d2 = 0),
         d0 = 1, d1 = params.N_LGL * params.N_LGL))
 
     F_xi_1_eta_j       = af.transpose(
-        af.tile(wave_equation_2d.F_x(af.reorder(element_lf_flux[:, 2],
-                                                d0 = 2, d1 = 1, d2 = 0)),
+        af.tile(af.reorder(element_lf_flux[:, 2],
+                           d0 = 2, d1 = 1, d2 = 0),
         d0 = 1, d1 = params.N_LGL * params.N_LGL))
 
     F_xi_i_eta_1       = af.transpose(
-        af.tile(wave_equation_2d.F_y(af.reorder(element_lf_flux[:, 3],
-                                                d0 = 2, d1 = 1, d2 = 0)),
+        af.tile(af.reorder(element_lf_flux[:, 3],
+                           d0 = 2, d1 = 1, d2 = 0),
         d0 = 1, d1 = params.N_LGL * params.N_LGL))
 
     # 5. Calculate the surface term intergal for the left edge
@@ -790,7 +931,6 @@ def time_evolution(u_init, gv):
     shape_u   = utils.shape(u)
     delta_t   = gv.delta_t_2d
     time      = gv.time_2d
-    u_init    = gv.u_e_ij
 
     gauss_points    = gv.gauss_points
     gauss_weights   = gv.gauss_weights

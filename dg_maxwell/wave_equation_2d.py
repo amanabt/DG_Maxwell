@@ -323,13 +323,15 @@ def A_matrix(N_LGL, advec_var):
 def F_x(u):
     '''
     '''
-    return params.c_x * u
+    dx_dxi = 0.1 # For test [TODO][REMOVE]
+    return dx_dxi * params.c_x * u
 
 
 def F_y(u):
     '''
     '''
-    return params.c_y * u
+    dy_deta = 0.1 # For test [TODO][REMOVE]
+    return dy_deta * params.c_y * u
 
 
 

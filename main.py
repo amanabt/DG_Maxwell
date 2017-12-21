@@ -36,7 +36,7 @@ gv = global_variables.advection_variables(params.N_LGL, params.N_quad,
 edge_reorded_mesh = msh_parser.rearrange_element_edges(gv.elements, gv)
 gv.reassign_2d_elements(edge_reorded_mesh)
 
-advection_2d_arbit_mesh.time_evolution(gv)
+advection_2d_arbit_mesh.time_evolution(gv.u_e_ij, gv)
 
 
 #change_parameters(5)
