@@ -90,8 +90,6 @@ def volume_integral(u, advec_var):
     dLq_eta_ij_Lp_xi_ij = advec_var.dLq_Lp
     dxi_dx   = 10.
     deta_dy  = 10.
-    dx_dxi   = 0.1 # For test [TODO][REMOVE]
-    dy_deta  = 0.1 # For test [TODO][REMOVE]
     jacobian = 100.
     c_x = params.c_x
     c_y = params.c_y
@@ -108,7 +106,7 @@ def volume_integral(u, advec_var):
                                             advec_var.dLp_Lq),
                                d0 = 1, d1 = 1, d2 = 1, d3 = shape_u_n[2])
 
-        volume_integrand_ij_1_sp = c_x * dxi_dx * dx_dxi \
+        volume_integrand_ij_1_sp = c_x * dxi_dx \
                                  * af.broadcast(utils.multiply,
                                                 wi_wj_dLp_xi,
                                                 af.reorder(u, d0 = 0, d1 = 1,
@@ -120,7 +118,7 @@ def volume_integral(u, advec_var):
                                              advec_var.dLq_Lp),
                                 d0 = 1, d1 = 1, d2 = 1, d3 = shape_u_n[2])
 
-        volume_integrand_ij_2_sp = c_y * deta_dy * dy_deta \
+        volume_integrand_ij_2_sp = c_y * deta_dy \
                                  * af.broadcast(utils.multiply,
                                                 wi_wj_dLq_eta,
                                                 af.reorder(u, d0 = 0, d1 = 1,
@@ -133,7 +131,7 @@ def volume_integral(u, advec_var):
 
     else:
         #print('option2')
-        volume_integrand_ij_1 = c_x * dxi_dx * dx_dxi * af.broadcast(utils.multiply,
+        volume_integrand_ij_1 = c_x * dxi_dx * af.broadcast(utils.multiply,
                                                             af.tile(dLp_xi_ij_Lq_eta_ij,
                                                                     d0 = 1, d1 = 1, d2 = 1,
                                                                     d3 = shape_u_n[2]),
@@ -141,7 +139,7 @@ def volume_integral(u, advec_var):
                                                                        d2 = 3, d3 = 2)) \
                                                             / jacobian
 
-        volume_integrand_ij_2 = c_y * deta_dy * dy_deta * af.broadcast(utils.multiply,
+        volume_integrand_ij_2 = c_y * deta_dy * af.broadcast(utils.multiply,
                                                              af.tile(dLq_eta_ij_Lp_xi_ij,
                                                                      d0 = 1, d1 = 1, d2 = 1,
                                                                      d3 = shape_u_n[2]),

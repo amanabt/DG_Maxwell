@@ -62,7 +62,7 @@ y_e_ij          = gv.y_e_ij
 def contour_2d(u, index):
     '''
     '''
-    color_levels = np.linspace(-1.1, 1.1, 100)
+    color_levels = np.linspace(0, 1.1, 100)
     u_plot = af.flip(af.moddims(u, params.N_LGL, params.N_LGL, 10, 10), 0)
     x_plot = af.flip(af.moddims(x_e_ij, params.N_LGL, params.N_LGL, 10, 10), 0)
     y_plot = af.flip(af.moddims(y_e_ij, params.N_LGL, params.N_LGL, 10, 10), 0)
