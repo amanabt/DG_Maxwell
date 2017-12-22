@@ -27,48 +27,6 @@ def A_matrix(advec_var):
 
 
 
-def upwind_flux_x(left_state, right_state):
-    '''
-    '''
-    E_z = 0.5 * (right_state[:, :, 0] + left_state[:, :, 0] \
-        + right_state[:, :, 2] - left_state[:, :, 2])
-    B_y = 0.5 * (right_state[:, :, 0] - left_state[:, :, 0] \
-        + right_state[:, :, 2] + left_state[:, :, 2])
-    B_x = 0.5 * (right_state[:, :, 1] + left_state[:, :, 1])
-
-    flux = af.constant(0.,
-                       d0 = left_state.shape[0],
-                       d1 = left_state.shape[1],
-                       d2 = left_state.shape[2],
-                       dtype = af.Dtype.f64)
-
-    flux[:, :, 0] = - B_y
-    flux[:, :, 2] = - E_z
-    
-    return flux
-
-def upwind_flux_x(bottom_state, top_state):
-    '''
-    '''
-    E_z = 0.5 * (bottom_state[:, :, 0] + top_state[:, :, 0] \
-        + bottom_state[:, :, 1] - top_state[:, :, 1])
-    B_y = 0.5 * (bottom_state[:, :, 2] + top_state[:, :, 2])
-    B_x = 0.5 * (bottom_state[:, :, 0] - top_state[:, :, 0] \
-        + bottom_state[:, :, 1] + top_state[:, :, 1])
-
-    flux = af.constant(0.,
-                       d0 = bottom_state.shape[0],
-                       d1 = bottom_state.shape[1],
-                       d2 = bottom_state.shape[2],
-                       dtype = af.Dtype.f64)
-
-    flux[:, :, 0] = B_x
-    flux[:, :, 1] = E_z
-
-    return flux
-
-
-
 def volume_integral(u, advec_var):
     '''
     Calculates the volume integral term for the :math:`x-y` formulation of
@@ -530,33 +488,80 @@ def lf_flux_all_edges_vectorized(u_e_ij, advec_var):
     return element_lf_flux
 
 
+#def upwind_flux_x(left_state, right_state, c_x):
+    #'''
+    #'''
+    #if c_x > 0:
+        #return left_state
+    
+    #if c_x == 0:
+        #return (left_state + right_state) / 2
+    
+    #if c_x < 0:
+        #return right_state
+    
+    #return
+
+#def upwind_flux_y(bottom_state, top_state, c_y):
+    #'''
+    #'''
+    #if c_y > 0:
+        #return bottom_state
+
+    #if c_y == 0:
+        #return (bottom_state + top_state) / 2
+
+    #if c_y < 0:
+        #return top_state
+
+    #return
+
+
+
 def upwind_flux_x(left_state, right_state, c_x):
     '''
     '''
-    if c_x > 0:
-        return left_state
+    E_z = 0.5 * (right_state[:, :, :, 0] + left_state[:, :, :, 0] \
+        + right_state[:, :, :, 2] - left_state[:, :, :, 2])
+    B_y = 0.5 * (right_state[:, :, :, 0] - left_state[:, :, :, 0] \
+        + right_state[:, :, :, 2] + left_state[:, :, :, 2])
+    #B_x = 0.5 * (right_state[:, :, :, 1] + left_state[:, :, :, 1])
     
-    if c_x == 0:
-        return (left_state + right_state) / 2
-    
-    if c_x < 0:
-        return right_state
-    
-    return
+    flux = af.constant(0.,
+                       d0 = left_state.shape[0],
+                       d1 = left_state.shape[1],
+                       d2 = 1,
+                       d3 = left_state.shape[3],
+                       dtype = af.Dtype.f64)
+
+    flux[:, :, :, 0] = - B_y
+    flux[:, :, :, 2] = - E_z
+
+    return flux
 
 def upwind_flux_y(bottom_state, top_state, c_y):
     '''
     '''
-    if c_y > 0:
-        return bottom_state
+    E_z = 0.5 * (bottom_state[:, :, :, 0] + top_state[:, :, :, 0] \
+        + bottom_state[:, :, :, 1] - top_state[:, :, :, 1])
+    #B_y = 0.5 * (bottom_state[:, :, :, 2] + top_state[:, :, :, 2])
+    B_x = 0.5 * (bottom_state[:, :, :, 0] - top_state[:, :, :, 0] \
+        + bottom_state[:, :, :, 1] + top_state[:, :, :, 1])
 
-    if c_y == 0:
-        return (bottom_state + top_state) / 2
+    #shape_bottom_state = utils.shape(bottom_state)
+    
+    flux = af.constant(0.,
+                       d0 = bottom_state.shape[0],
+                       d1 = bottom_state.shape[1],
+                       d2 = 1,
+                       d3 = bottom_state.shape[3],
+                       dtype = af.Dtype.f64)
 
-    if c_y < 0:
-        return top_state
+    flux[:, :, :, 0] = B_x
+    flux[:, :, :, 1] = E_z
 
-    return
+    return flux
+
 
 
 
@@ -637,16 +642,24 @@ def flux_all_edges_upwind_scheme(u_e_ij, advec_var):
     # Left edge
 
     u_at_left_edge = upwind_flux_x(u_left_other_element, u_left, params.c_x)
-    flux_left_edge = wave_equation_2d.F_x(u_at_left_edge)
+    flux_left_edge = u_at_left_edge
+     # [NOTE]: Comment the next line when evolving Maxwell's equations
+    #flux_left_edge = wave_equation_2d.F_x(u_at_left_edge)
 
     u_at_bottom_edge = upwind_flux_y(u_bottom_other_element, u_bottom, params.c_y)
-    flux_bottom_edge = wave_equation_2d.F_y(u_at_bottom_edge)
+    flux_bottom_edge = u_at_bottom_edge
+    # [NOTE]: Comment the next line when evolving Maxwell's equations
+    #flux_bottom_edge = wave_equation_2d.F_y(u_at_bottom_edge)
 
     u_at_right_edge = upwind_flux_x(u_right, u_right_other_element, params.c_x)
-    flux_right_edge = wave_equation_2d.F_x(u_at_right_edge)
+    flux_right_edge = u_at_right_edge
+    # [NOTE]: Comment the next line when evolving Maxwell's equations
+    #flux_right_edge = wave_equation_2d.F_x(u_at_right_edge)
 
-    u_at_top_edge = upwind_flux_x(u_top, u_top_other_element, params.c_y)
-    flux_top_edge = wave_equation_2d.F_y(u_at_top_edge)
+    u_at_top_edge = upwind_flux_y(u_top, u_top_other_element, params.c_y)
+    flux_top_edge = u_at_top_edge
+    # [NOTE]: Comment the next line when evolving Maxwell's equations
+    #flux_top_edge = wave_equation_2d.F_y(u_at_top_edge)
 
     # Store the fluxes in a [N_elements 4 N_LGL 1]
 

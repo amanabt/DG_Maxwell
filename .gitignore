@@ -226,7 +226,6 @@ examples/results
 !examples/advection_2d_arbit_mesh_multiple_u/*
 !examples/upwind_flux_arbitrary_mesh/*
 !examples/plot_u_e_ij/*
-!examples/maxwells_equations/*
 
 *.kate-swp
 
