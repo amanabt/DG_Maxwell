@@ -341,7 +341,7 @@ def integrate(integrand_coeffs, gv):
 
         value_at_gauss_nodes = af.matmul(integrand, nodes_weight)
         integral             = af.sum(value_at_gauss_nodes, 1)
- 
+
     if (params.scheme == 'lobatto_quadrature'):
 
         lobatto_nodes   = gv.lobatto_quadrature_nodes
@@ -360,6 +360,8 @@ def integrate(integrand_coeffs, gv):
         integral               = af.sum(value_at_lobatto_nodes, 1)
 
     return integral
+
+
 
 def lagrange_interpolation_u(u, gv):
     '''

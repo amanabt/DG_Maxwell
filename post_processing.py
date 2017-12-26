@@ -91,15 +91,16 @@ def contour_2d(u, index):
     pl.contourf(x_contour, y_contour, u_contour, 200, levels = color_levels, cmap = 'jet')
     pl.gca().set_aspect('equal')
     pl.colorbar()
-    pl.title('Time = %.2f' %(index * 10 * gv.delta_t_2d))
-    fig.savefig('results/2D_Wave_images/%04d' %(index) + '.png')
+    pl.title('Time = %.2f' %(index * 20 * gv.delta_t_2d))
+    fig.savefig('results/2D_Wave_images/%04d' %(index) + '.png', dpi = 400)
     pl.close('all')
     return
 
+
+
 for i in trange(1000):
-    h5py_data = h5py.File('results/2d_hdf5_%02d/dump_timestep_%06d' %(int(params.N_LGL), int(10 * i)) + '.hdf5', 'r')
+    h5py_data = h5py.File('results/2d_hdf5_%02d/dump_timestep_%06d' %(int(params.N_LGL), int(i * 1)) + '.hdf5', 'r')
     u_LGL     = af.np_to_af_array(h5py_data['u_i'][:])
-    #print(u_LGL.shape)
     contour_2d(u_LGL[:, :, 0], i)
     #if i > 199 :
         #print(af.mean(af.abs(u_LGL - params.u_e_ij)))

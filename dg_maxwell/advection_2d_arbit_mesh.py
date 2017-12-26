@@ -488,6 +488,7 @@ def lf_flux_all_edges_vectorized(u_e_ij, advec_var):
     return element_lf_flux
 
 
+
 #def upwind_flux_x(left_state, right_state, c_x):
     #'''
     #'''
@@ -501,6 +502,8 @@ def lf_flux_all_edges_vectorized(u_e_ij, advec_var):
         #return right_state
     
     #return
+
+
 
 #def upwind_flux_y(bottom_state, top_state, c_y):
     #'''
@@ -525,7 +528,7 @@ def upwind_flux_x(left_state, right_state, c_x):
         + right_state[:, :, :, 2] - left_state[:, :, :, 2])
     B_y = 0.5 * (right_state[:, :, :, 0] - left_state[:, :, :, 0] \
         + right_state[:, :, :, 2] + left_state[:, :, :, 2])
-    #B_x = 0.5 * (right_state[:, :, :, 1] + left_state[:, :, :, 1])
+    B_x = 0.5 * (right_state[:, :, :, 1] + left_state[:, :, :, 1])
     
     flux = af.constant(0.,
                        d0 = left_state.shape[0],
@@ -539,16 +542,18 @@ def upwind_flux_x(left_state, right_state, c_x):
 
     return flux
 
+
+
 def upwind_flux_y(bottom_state, top_state, c_y):
     '''
     '''
     E_z = 0.5 * (bottom_state[:, :, :, 0] + top_state[:, :, :, 0] \
         + bottom_state[:, :, :, 1] - top_state[:, :, :, 1])
-    #B_y = 0.5 * (bottom_state[:, :, :, 2] + top_state[:, :, :, 2])
+    B_y = 0.5 * (bottom_state[:, :, :, 2] + top_state[:, :, :, 2])
     B_x = 0.5 * (bottom_state[:, :, :, 0] - top_state[:, :, :, 0] \
         + bottom_state[:, :, :, 1] + top_state[:, :, :, 1])
 
-    #shape_bottom_state = utils.shape(bottom_state)
+    shape_bottom_state = utils.shape(bottom_state)
     
     flux = af.constant(0.,
                        d0 = bottom_state.shape[0],
@@ -561,7 +566,6 @@ def upwind_flux_y(bottom_state, top_state, c_y):
     flux[:, :, :, 1] = E_z
 
     return flux
-
 
 
 
@@ -643,7 +647,7 @@ def flux_all_edges_upwind_scheme(u_e_ij, advec_var):
 
     u_at_left_edge = upwind_flux_x(u_left_other_element, u_left, params.c_x)
     flux_left_edge = u_at_left_edge
-     # [NOTE]: Comment the next line when evolving Maxwell's equations
+    # [NOTE]: Comment the next line when evolving Maxwell's equations
     #flux_left_edge = wave_equation_2d.F_x(u_at_left_edge)
 
     u_at_bottom_edge = upwind_flux_y(u_bottom_other_element, u_bottom, params.c_y)
@@ -662,7 +666,6 @@ def flux_all_edges_upwind_scheme(u_e_ij, advec_var):
     #flux_top_edge = wave_equation_2d.F_y(u_at_top_edge)
 
     # Store the fluxes in a [N_elements 4 N_LGL 1]
-
     element_lf_flux = af.constant(0, d0 = params.N_LGL,
                                   d1 = advec_var.elements.shape[0],
                                   d2 = 4, d3 = shape_u[2],
@@ -965,7 +968,8 @@ def time_evolution(u_init, gv):
         if (L1_norm >= 100):
             break
         if (i % 1) == 0:
-            h5file = h5py.File('results/2d_hdf5_%02d/dump_timestep_%06d' %(int(params.N_LGL), int(i)) + '.hdf5', 'w')
+            h5file = h5py.File('results/2d_hdf5_%02d/dump_timestep_%06d' \
+                %(int(params.N_LGL), int(i)) + '.hdf5', 'w')
             dset   = h5file.create_dataset('u_i', data = u, dtype = 'd')
 
             dset[:, :] = u[:, :]
@@ -973,14 +977,6 @@ def time_evolution(u_init, gv):
 
 
         u += +RK4_timestepping(A_inverse, u, delta_t, gv)
-
-
-        #Implementing second order time-stepping.
-        #u_n_plus_half =  u + af.matmul(A_inverse, b_vector(u))\
-        #                      * delta_t / 2
-
-        #u            +=  af.matmul(A_inverse, b_vector(u_n_plus_half))\
-        #                  * delta_t
 
     return L1_norm
 
