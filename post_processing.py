@@ -63,27 +63,33 @@ def contour_2d(u, index):
     '''
     '''
     color_levels = np.linspace(0, 1.1, 100)
-    u_plot = af.flip(af.moddims(u, params.N_LGL, params.N_LGL, 10, 10), 0)
-    x_plot = af.flip(af.moddims(x_e_ij, params.N_LGL, params.N_LGL, 10, 10), 0)
-    y_plot = af.flip(af.moddims(y_e_ij, params.N_LGL, params.N_LGL, 10, 10), 0)
+    u_plot = af.flip(af.moddims(u, params.N_LGL, params.N_LGL, 3, 1), 0)
+    x_plot = af.flip(af.moddims(x_e_ij, params.N_LGL, params.N_LGL, 3, 1), 0)
+    y_plot = af.flip(af.moddims(y_e_ij, params.N_LGL, params.N_LGL, 3, 1), 0)
 
 
-    x_contour = af.np_to_af_array(np.zeros([params.N_LGL * 10, params.N_LGL * 10]))
-    y_contour = af.np_to_af_array(np.zeros([params.N_LGL * 10, params.N_LGL * 10]))
-    u_contour = af.np_to_af_array(np.zeros([params.N_LGL * 10, params.N_LGL * 10]))
+    x_contour = af.np_to_af_array(np.zeros([params.N_LGL * 3, params.N_LGL * 1]))
+    y_contour = af.np_to_af_array(np.zeros([params.N_LGL * 3, params.N_LGL * 1]))
+    u_contour = af.np_to_af_array(np.zeros([params.N_LGL * 3, params.N_LGL * 1]))
     fig = pl.figure()
-    #
-    for r in range(100):
-        p = int(r / 10)
-        q = r - p * 10
+    
+    print(x_contour.shape, x_plot.shape)
+    for r in range(3):
+        q = int(r / 3)
+        p = r - q * 1
+
+        print(p * params.N_LGL, ":", params.N_LGL * (p + 1),
+              q * params.N_LGL, ":", params.N_LGL * (q + 1))
+        print(q, p)
+
         x_contour[p * params.N_LGL:params.N_LGL * (p + 1),\
-                  q * params.N_LGL:params.N_LGL * (q + 1)] = x_plot[:, :, q, p]
+                    q * params.N_LGL:params.N_LGL * (q + 1)] = x_plot[:, :, q, p]
 
         y_contour[p * params.N_LGL:params.N_LGL * (p + 1),\
-                  q * params.N_LGL:params.N_LGL * (q + 1)] = y_plot[:, :, q, p]
+                    q * params.N_LGL:params.N_LGL * (q + 1)] = y_plot[:, :, q, p]
 
         u_contour[p * params.N_LGL:params.N_LGL * (p + 1),\
-                  q * params.N_LGL:params.N_LGL * (q + 1)] = u_plot[:, :, q, p]
+                    q * params.N_LGL:params.N_LGL * (q + 1)] = u_plot[:, :, q, p]
 
     x_contour = np.array(x_contour)
     y_contour = np.array(y_contour)
@@ -99,8 +105,9 @@ def contour_2d(u, index):
 
 
 for i in trange(1000):
-    h5py_data = h5py.File('results/2d_hdf5_%02d/dump_timestep_%06d' %(int(params.N_LGL), int(i * 1)) + '.hdf5', 'r')
+    h5py_data = h5py.File('results/2d_hdf5_%02d/dump_timestep_%06d' % (int(params.N_LGL), int(i * 1)) + '.hdf5', 'r')
     u_LGL     = af.np_to_af_array(h5py_data['u_i'][:])
+    print(u_LGL[:, :, 0].shape)
     contour_2d(u_LGL[:, :, 0], i)
     #if i > 199 :
         #print(af.mean(af.abs(u_LGL - params.u_e_ij)))

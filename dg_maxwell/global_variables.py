@@ -245,9 +245,9 @@ class advection_variables:
         self.interelement_relations = af.np_to_af_array(
             msh_parser.interelement_relations(self.elements))
 
-        ################################################################
-        ###Code to apply periodic BC for square 4x4 non-contiguous case.
-        ################################################################
+        ###############################################################
+        ##Code to apply periodic BC defined in params module
+        ###############################################################
         if params.vertical_boundary_elements_pbc is not None:
             for vertical_boundary in params.vertical_boundary_elements_pbc:
                 self.interelement_relations[vertical_boundary[0],
