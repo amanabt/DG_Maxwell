@@ -47,7 +47,7 @@ u_init = af.join(dim    = 2,
                  first  = E_z_init,
                  second = B_x_init,
                  third  = B_y_init)
-u_init = E_z_init #[NOTE] Comment this when running the Maxwell's equations
+#u_init = E_z_init #[NOTE] Comment this when running the Maxwell's equations
 
 advection_2d_arbit_mesh.time_evolution(u_init, gv)
 

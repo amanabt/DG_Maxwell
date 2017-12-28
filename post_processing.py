@@ -72,7 +72,7 @@ def contour_2d(u, index):
     y_contour = af.np_to_af_array(np.zeros([params.N_LGL * 3, params.N_LGL * 1]))
     u_contour = af.np_to_af_array(np.zeros([params.N_LGL * 3, params.N_LGL * 1]))
     fig = pl.figure()
-    
+
     print(x_contour.shape, x_plot.shape)
     for r in range(3):
         q = int(r / 3)
@@ -98,14 +98,14 @@ def contour_2d(u, index):
     pl.gca().set_aspect('equal')
     pl.colorbar()
     pl.title('Time = %.2f' %(index * 20 * gv.delta_t_2d))
-    fig.savefig('results/2D_Wave_images/%04d' %(index) + '.png', dpi = 400)
+    fig.savefig('results/2D_Wave_images/%04d' %(index) + '.png', dpi = 300)
     pl.close('all')
     return
 
 
 
 for i in trange(1000):
-    h5py_data = h5py.File('results/2d_hdf5_%02d/dump_timestep_%06d' % (int(params.N_LGL), int(i * 1)) + '.hdf5', 'r')
+    h5py_data = h5py.File('results/2d_hdf5_%02d/dump_timestep_%06d' % (int(params.N_LGL), int(i * 20)) + '.hdf5', 'r')
     u_LGL     = af.np_to_af_array(h5py_data['u_i'][:])
     print(u_LGL[:, :, 0].shape)
     contour_2d(u_LGL[:, :, 0], i)
