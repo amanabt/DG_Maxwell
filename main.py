@@ -36,12 +36,17 @@ gv = global_variables.advection_variables(params.N_LGL, params.N_quad,
 edge_reorded_mesh = msh_parser.rearrange_element_edges(gv.elements, gv)
 gv.reassign_2d_elements(edge_reorded_mesh)
 
+print('Delta t 2D', gv.delta_t_2d)
 sigma = 0.4
-E_z_init = np.e**(- (gv.x_e_ij**2) / sigma**2)
-B_x_init = af.constant(0., d0 = gv.x_e_ij.shape[0],
-                       d1 = gv.x_e_ij.shape[1],
-                       dtype = af.Dtype.f64)
+E_z_init = np.e**(- (gv.x_e_ij**2 + gv.y_e_ij**2) / sigma**2)
+B_x_init = np.e**(- (gv.y_e_ij**2) / sigma**2)
+#B_x_init = af.constant(0., d0 = gv.x_e_ij.shape[0],
+                       #d1 = gv.x_e_ij.shape[1],
+                       #dtype = af.Dtype.f64)
 B_y_init = np.e**(- (gv.x_e_ij**2) / sigma**2)
+#B_y_init = af.constant(0., d0 = gv.x_e_ij.shape[0],
+                       #d1 = gv.x_e_ij.shape[1],
+                       #dtype = af.Dtype.f64)
 
 u_init = af.join(dim    = 2,
                  first  = E_z_init,

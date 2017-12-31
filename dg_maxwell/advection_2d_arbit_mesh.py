@@ -21,8 +21,8 @@ from dg_maxwell import utils
 def A_matrix(advec_var):
     '''
     '''
-    #jacobian = 100. # For the 10x10 case
-    jacobian = 3 # For the 1x3 case
+    jacobian = 100. # For the 10x10 case
+    #jacobian = 3 # For the 1x3 case
     A_ij = wave_equation_2d.A_matrix(params.N_LGL, advec_var) / jacobian
 
     return A_ij
@@ -92,14 +92,14 @@ def volume_integral(u, advec_var):
     dLq_eta_ij_Lp_xi_ij = advec_var.dLq_Lp
     
     # For the 10x10 mesh case
-    #dxi_dx   = 10.
-    #deta_dy  = 10.
-    #jacobian = 100.
+    dxi_dx   = 10.
+    deta_dy  = 10.
+    jacobian = 100.
 
     # For the 1x3 mesh case
-    dxi_dx   = 3.
-    deta_dy  = 1.
-    jacobian = 3.
+    #dxi_dx   = 3.
+    #deta_dy  = 1.
+    #jacobian = 3.
 
     if (params.volume_integrand_scheme_2d == 'Lobatto' and params.N_LGL == params.N_quad):
         #print('option1')
@@ -754,11 +754,11 @@ def surface_term_vectorized(u, advec_var):
     surface_term : af.Array [N_LGL*N_LGL N_elements M 1]
                    Surface term calculated for :math:`M` ``u``.
     '''
-    #dx_dxi  = 0.1
-    #dy_deta = 0.1
+    dx_dxi  = 0.1
+    dy_deta = 0.1
 
-    dx_dxi  = 1. / 3.
-    dy_deta = 1.
+    #dx_dxi  = 1. / 3.
+    #dy_deta = 1.
 
     shape_u = utils.shape(u)
 
@@ -1015,7 +1015,7 @@ def time_evolution(u_init, gv):
 
         if (L1_norm >= 100):
             break
-        if (i % 2) == 0:
+        if (i % 20) == 0:
             h5file = h5py.File('results/2d_hdf5_%02d/dump_timestep_%06d' \
                 %(int(params.N_LGL), int(i)) + '.hdf5', 'w')
             dset   = h5file.create_dataset('u_i', data = u, dtype = 'd')
