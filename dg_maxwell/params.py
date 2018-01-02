@@ -69,7 +69,7 @@ mesh_file = 'examples/read_and_plot_mesh/mesh/square_10_10.msh'
 #mesh_file = 'examples/read_and_plot_mesh/mesh/particle_in_rectangle.msh'
 #mesh_file  = 'examples/read_and_plot_mesh/mesh/square_1_3.msh'
 
-total_time_2d = 2.01
+total_time_2d = 4.01
 
 volume_integrand_scheme_2d = 'Lobatto'
 
