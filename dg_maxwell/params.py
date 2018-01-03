@@ -36,7 +36,7 @@ N_quad     = 8
 c          = 1
 
 # The total time for which the wave is to be evolved by the simulation.
-total_time = 2.01
+total_time = 2.0
 
 # The c_lax to be used in the Lax-Friedrichs flux.
 c_lax      = c

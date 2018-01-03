@@ -1011,7 +1011,8 @@ def time_evolution(u_init, gv):
     A_inverse = af.tile(A_inverse, d0 = 1, d1 = 1, d2 = shape_u[2])
 
     for i in trange(time.shape[0]):
-        L1_norm = af.mean(af.abs(u_init - u))
+        L1_norm = af.mean(af.abs(u_analytical(i, gv) - u))
+        #print('L1 Norm>', round(L1_norm, 14))
 
         if (L1_norm >= 100):
             break
@@ -1028,12 +1029,36 @@ def time_evolution(u_init, gv):
     return L1_norm
 
 
+def Ez_analytical(x, y, t):
+    '''
+    '''
+    return af.sin(2 * np.pi * (x + t)) + af.cos(2 * np.pi * (y - t))
 
-def u_analytical(t_n, gv):
+
+def Bx_analytical(x, y, t):
     '''
     '''
-    time = gv.delta_t_2d * t_n
-    u_analytical_t_n = af.sin(2 * np.pi * (gv.x_e_ij - params.c_x * time) +
-                              4 * np.pi * (gv.y_e_ij - params.c_y * time))
+    return af.cos(2 * np.pi * (y - t))
+
+
+def By_analytical(x, y, t):
+    '''
+    '''
+    return af.sin(2 * np.pi * (x + t))
+
+
+def u_analytical(t_n, advec_var):
+    '''
+    '''
+    time = advec_var.delta_t_2d * t_n
+
+    Ez_ref = Ez_analytical(advec_var.x_e_ij, advec_var.y_e_ij, time)
+    Bx_ref = Bx_analytical(advec_var.x_e_ij, advec_var.y_e_ij, time)
+    By_ref = By_analytical(advec_var.x_e_ij, advec_var.y_e_ij, time)
+
+    u_analytical_t_n = af.join(dim    = 2,
+                               first  = Ez_ref,
+                               second = Bx_ref,
+                               third  = By_ref)
 
     return u_analytical_t_n
