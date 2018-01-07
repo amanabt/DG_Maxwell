@@ -50,17 +50,18 @@ print('Delta t 2D', gv.delta_t_2d)
                        #d1 = gv.x_e_ij.shape[1],
                        #dtype = af.Dtype.f64)
 
-# 1. Sin initial conditions
+## 1. Sin initial conditions
 
-E_z_init = af.sin(2 * np.pi * gv.x_e_ij) + af.cos(2 * np.pi * gv.y_e_ij)
-B_x_init = af.cos(2 * np.pi * gv.y_e_ij)
-#B_x_init = af.constant(0., d0 = gv.x_e_ij.shape[0],
-                       #d1 = gv.x_e_ij.shape[1],
-                       #dtype = af.Dtype.f64)
-B_y_init = af.sin(2 * np.pi * gv.x_e_ij)
-#B_y_init = af.constant(0., d0 = gv.x_e_ij.shape[0],
-                       #d1 = gv.x_e_ij.shape[1],
-                       #dtype = af.Dtype.f64)
+#E_z_init = af.sin(2 * np.pi * gv.x_e_ij) + af.cos(2 * np.pi * gv.y_e_ij)
+#B_x_init = af.cos(2 * np.pi * gv.y_e_ij)
+#B_y_init = af.sin(2 * np.pi * gv.x_e_ij)
+
+# 2. Sin initial conditions
+
+E_z_init =  af.sin(2 * np.pi * gv.x_e_ij) + af.cos(2 * np.pi * gv.y_e_ij)
+B_x_init =  af.sin(2 * np.pi * gv.x_e_ij) * af.cos(2 * np.pi * gv.y_e_ij)
+B_y_init = -af.cos(2 * np.pi * gv.x_e_ij) * af.sin(2 * np.pi * gv.y_e_ij)
+
 
 u_init = af.join(dim    = 2,
                  first  = E_z_init,

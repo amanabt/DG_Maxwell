@@ -23,10 +23,10 @@ for N_LGL in trange(4, 25):
     params.N_quad = N_LGL
 
     advec_var = global_variables.advection_variables(params.N_LGL, params.N_quad,
-                                                        params.x_nodes, params.N_Elements,
-                                                        params.c, params.total_time, params.wave,
-                                                        params.c_x, params.c_y, params.courant,
-                                                        params.mesh_file, params.total_time_2d)
+                                                     params.x_nodes, params.N_Elements,
+                                                     params.c, params.total_time, params.wave,
+                                                     params.c_x, params.c_y, params.courant,
+                                                     params.mesh_file, params.total_time_2d)
 
     edge_reorded_mesh = msh_parser.rearrange_element_edges(advec_var.elements, advec_var)
     advec_var.reassign_2d_elements(edge_reorded_mesh)
